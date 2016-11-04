@@ -253,6 +253,7 @@ If someone finds this is not the case or sees a logic error with this let me kno
 
 void SPIClass::beginTransaction(uint8_t pin, SPISettings settings)
 {
+	(void)pin;
 	#ifdef SPI_DEBUG
 	Serial.println("SPIClass::beginTransaction");
 	#endif
@@ -356,7 +357,7 @@ void SPIClass::write(const uint8 *data, uint32 length) {
 	while (spi_is_busy(_currentSetting->spi_d) != 0); // "... then wait until BSY=0, this indicates that the transmission of the last data is complete."
 	// taken from SdSpiSTM32F1.cpp - Victor's lib, and adapted to support device selection
 	if (spi_is_rx_nonempty(_currentSetting->spi_d)) {
-		uint8_t b = spi_rx_reg(_currentSetting->spi_d);
+		spi_rx_reg(_currentSetting->spi_d);
 	}
 }
 
@@ -434,7 +435,7 @@ uint8 SPIClass::dmaTransfer(uint8 *transmitBuf, uint8 *receiveBuf, uint16 length
 	spi_rx_dma_disable(_currentSetting->spi_d); // And disable generation of DMA request from the SPI port so other peripherals can use the channels
 	spi_tx_dma_disable(_currentSetting->spi_d);
 	if (spi_is_rx_nonempty(_currentSetting->spi_d) != 0){; // "4. Wait until RXNE=1 ..."
-		uint8 x = spi_rx_reg(_currentSetting->spi_d); // "... and read the last received data."
+		spi_rx_reg(_currentSetting->spi_d); // "... and read the last received data."
 	}
     return b;
 }
@@ -468,7 +469,7 @@ uint8 SPIClass::dmaSend(uint8 *transmitBuf, uint16 length, bool minc) {
 	dma_disable(_currentSetting->spiDmaDev, _currentSetting->spiTxDmaChannel);
 	spi_tx_dma_disable(_currentSetting->spi_d);
 	if (spi_is_rx_nonempty(_currentSetting->spi_d) != 0){; // "4. Wait until RXNE=1 ..."
-		uint8 x = spi_rx_reg(_currentSetting->spi_d); // "... and read the last received data."
+		spi_rx_reg(_currentSetting->spi_d); // "... and read the last received data."
 	}
     return b;
 }
@@ -476,7 +477,7 @@ uint8 SPIClass::dmaSend(uint8 *transmitBuf, uint16 length, bool minc) {
 uint8 SPIClass::dmaSend(uint16 *transmitBuf, uint16 length, bool minc) {
 	if (length == 0) return 0;
 	uint32 flags = ((DMA_MINC_MODE * minc) |  DMA_FROM_MEM | DMA_TRNS_CMPLT);
-	uint8 b;
+	uint8 b=0;
 	dma1_ch3_Active=true;
     dma_init(_currentSetting->spiDmaDev);
 //	dma_attach_interrupt(DMA1, DMA_CH3, &SPIClass::DMA1_CH3_Event);
@@ -626,6 +627,7 @@ static spi_baud_rate determine_baud_rate(spi_dev *dev, uint32_t freq) {
     {
     	case RCC_APB2: clock = STM32_PCLK2; break; // 72 Mhz
     	case RCC_APB1: clock = STM32_PCLK1; break; // 36 Mhz
+	default: break;
     }
     clock /= 2;
     i = 0;
